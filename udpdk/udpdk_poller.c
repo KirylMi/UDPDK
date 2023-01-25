@@ -17,6 +17,7 @@
 #include <rte_lcore.h>
 #include <rte_log.h>
 #include <rte_mbuf.h>
+#include <rte_mbuf_core.h>
 #include <rte_memory.h>
 #include <rte_mempool.h>
 #include <rte_memzone.h>
@@ -472,7 +473,7 @@ void poller_body(void)
                         // Free the original mbuf
                         rte_pktmbuf_free(pkt);
                         // Checksum must be recomputed
-                        ol_flags = (PKT_TX_IPV4 | PKT_TX_IP_CKSUM);
+                        ol_flags = (RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM);
                         if (unlikely(n_fragments < 0)) {
                             RTE_LOG(ERR, POLLBODY, "Failed to fragment a packet\n");
                             break;
@@ -490,8 +491,8 @@ void poller_body(void)
                                 break;
                             }
                             new_eth_hdr->ether_type = old_eth_hdr->ether_type;
-                            rte_ether_addr_copy(&old_eth_hdr->s_addr, &new_eth_hdr->s_addr);
-                            rte_ether_addr_copy(&old_eth_hdr->d_addr, &new_eth_hdr->d_addr);
+                            rte_ether_addr_copy(&old_eth_hdr->src_addr, &new_eth_hdr->src_addr);
+                            rte_ether_addr_copy(&old_eth_hdr->dst_addr, &new_eth_hdr->dst_addr);
                             pkt->packet_type = RTE_PTYPE_L2_ETHER | RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L4_UDP;
                             pkt->ol_flags |= ol_flags;
                             pkt->l2_len = sizeof(struct rte_ether_hdr);
