@@ -61,6 +61,7 @@ int udpdk_socket(int domain, int type, int protocol)
     // Allocate a free sock_id
     for (sock_id = 0; sock_id < NUM_SOCKETS_MAX; sock_id++) {
         if (!exch_zone_desc->slots[sock_id].used) {
+            printf("sock_id found in here: %d", sock_id);
             exch_zone_desc->slots[sock_id].used = 1;
             exch_zone_desc->slots[sock_id].bound = 0;
             exch_zone_desc->slots[sock_id].sockfd = sock_id;
@@ -401,7 +402,9 @@ static int recvfrom_validate_args(int sockfd, void *buf, size_t len, int flags,
 ssize_t udpdk_recvfrom(int sockfd, void *buf, size_t len, int flags,
                        struct sockaddr *src_addr, socklen_t *addrlen)
 {
+    printf("before -1.");
     int ret = -1;
+    printf("after -1.");
     struct rte_mbuf *pkt = NULL;
     struct rte_mbuf *seg = NULL;
     uint32_t seg_len;           // number of bytes of payload in this segment
@@ -410,28 +413,34 @@ ssize_t udpdk_recvfrom(int sockfd, void *buf, size_t len, int flags,
     uint32_t bytes_left = len;
     uint16_t dgram_payl_len;    // UDP payload len, inferred from UDP header
     unsigned nb_segs;
+    printf("after nb_segs.");
     unsigned offset_payload;
     struct rte_ether_hdr *eth_hdr;
     struct rte_ipv4_hdr *ip_hdr;
     struct rte_udp_hdr *udp_hdr;
+    printf("Initialized.");
 
     // Validate the arguments
     if (recvfrom_validate_args(sockfd, buf, len, flags, src_addr, addrlen) < 0) {
         return -1;
     }
-
+    printf("Validated");
     // Dequeue one packet (busy wait until one is available)
     while (ret < 0 && !interrupted) {
+//        ret = rte_eth_rx_burst(PORT_RX, QUEUE_RX, &pkt, RX_MBUF_TABLE_SIZE);
         ret = rte_ring_dequeue(exch_slots[sockfd].rx_q, (void **)&pkt);
+//        printf("ret: %d", ret);
     }
     if (interrupted) {
         RTE_LOG(INFO, SYSCALL, "Recvfrom returning due to signal\n");
         errno = EINTR;
         return -1;
     }
+    printf("Interrupted?");
 
     // Get some useful pointers to headers and data
     nb_segs = pkt->nb_segs;
+    printf("nb_segs: %d", nb_segs);
     eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
     ip_hdr = (struct rte_ipv4_hdr *)(eth_hdr + 1);
     udp_hdr = (struct rte_udp_hdr *)(ip_hdr + 1);
@@ -454,6 +463,7 @@ ssize_t udpdk_recvfrom(int sockfd, void *buf, size_t len, int flags,
     }
 
     seg = pkt;
+    printf("Seg = pkt;");
     for (int s = 0; s < nb_segs; s++) {
         // The the first segment includes eth + ipv4 + udp headers before the payload
         offset_payload = (s == 0) ?
@@ -480,8 +490,10 @@ ssize_t udpdk_recvfrom(int sockfd, void *buf, size_t len, int flags,
             break;
         }
     }
+    printf("segs finished");
     // Free the mbuf (with all the chained segments)
     rte_pktmbuf_free(pkt);
+    printf("About to return;.");
 
     // Return how many bytes read
     return len - bytes_left;

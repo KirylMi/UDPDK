@@ -24,7 +24,7 @@
 
 #define PORT_SEND   10000
 #define PORT_RECV   10001
-#define IP_RECV     "172.31.100.1"
+#define IP_RECV     "192.168.56.115"
 
 #define ETH_HDR_LEN 14
 #define IP_HDR_LEN  20
@@ -192,10 +192,13 @@ static void recv_body(stats_t *stats)
 
     printf(("Entering recv loop\n"));
     while (app_alive) {
+        printf("recv loop\n");
         // Bounce incoming packets
         int len = sizeof(cliaddr);
+        printf("len: %d\n", len);
         n = udpdk_recvfrom(sock, (void *)buf, 2048, 0, ( struct sockaddr *) &cliaddr, &len);
         if (n > 0) {
+            printf(" n > 0");
             stats->pkts_recv++;
             stats->bytes_recv += n;
             if (hdr_stats) {
@@ -207,6 +210,9 @@ static void recv_body(stats_t *stats)
                     inet_ntop(AF_INET,&cliaddr.sin_addr, clientname, sizeof(clientname)),
                     ntohs(cliaddr.sin_port), buf);
             }
+        }
+        else{
+            printf(" n<= 0");
         }
     }
 }

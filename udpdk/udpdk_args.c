@@ -36,9 +36,9 @@ static int parse_handler(void* configuration, const char* section, const char* n
             return 0;
         }
     } else if (MATCH("dpdk", "lcores_primary")) {
-        strncpy(config.lcores_primary, value, MAX_ARG_LEN);
+        strcpy(config.lcores_primary, value);
     } else if (MATCH("dpdk", "lcores_secondary")) {
-        strncpy(config.lcores_secondary, value, MAX_ARG_LEN);
+        strcpy(config.lcores_secondary, value);
     } else if (MATCH("dpdk", "n_mem_channels")) {
         config.n_mem_channels = atoi(value);
     } else {
@@ -59,7 +59,7 @@ static int setup_primary_secondary_args(int argc, char *argv[])
     snprintf(primary_argv[primary_argc], 3, "-l");
     primary_argc++;
     primary_argv[primary_argc] = malloc(strlen(config.lcores_primary)+1);
-    snprintf(primary_argv[primary_argc], MAX_ARG_LEN, "%s", config.lcores_primary);
+    sprintf(primary_argv[primary_argc], "%s", config.lcores_primary);
     primary_argc++;
     primary_argv[primary_argc] = malloc(3);
     snprintf(primary_argv[primary_argc], 3, "-n");
@@ -80,7 +80,7 @@ static int setup_primary_secondary_args(int argc, char *argv[])
     snprintf(secondary_argv[secondary_argc], 3, "-l");
     secondary_argc++;
     secondary_argv[secondary_argc] = malloc(strlen(config.lcores_secondary)+1);
-    snprintf(secondary_argv[secondary_argc], MAX_ARG_LEN, "%s", config.lcores_secondary);
+    sprintf(secondary_argv[secondary_argc], "%s", config.lcores_secondary);
     secondary_argc++;
     secondary_argv[secondary_argc] = malloc(3);
     snprintf(secondary_argv[secondary_argc], 3, "-n");
@@ -90,6 +90,9 @@ static int setup_primary_secondary_args(int argc, char *argv[])
     secondary_argc++;
     secondary_argv[secondary_argc] = malloc(strlen("--proc-type=secondary")+1);
     snprintf(secondary_argv[secondary_argc], MAX_ARG_LEN, "--proc-type=secondary");
+    secondary_argc++;
+    secondary_argv[secondary_argc] = malloc(strlen("--log-level=lib.eal:err")+1);
+    snprintf(secondary_argv[secondary_argc], MAX_ARG_LEN, "--log-level=lib.eal:err");
     secondary_argc++;
 
     if (primary_argc + argc >= MAX_ARGC) {
