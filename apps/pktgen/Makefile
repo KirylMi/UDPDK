@@ -25,7 +25,7 @@ CFLAGS += $(WERROR_FLAGS) -O3
 
 TARGET="pktgen"
 all:
-	cc -I${ROOTDIR}/udpdk -I${DEPSDIR}/dpdk/${RTE_TARGET}/include -o ${TARGET} ${SRCS} ${LIBS}
+	cc -mavx -I${ROOTDIR}/udpdk -I${DEPSDIR}/dpdk/${RTE_TARGET}/include -o ${TARGET} ${SRCS} ${LIBS}
 
 .PHONY: clean
 clean:

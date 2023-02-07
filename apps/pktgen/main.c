@@ -31,14 +31,14 @@
 #define UDP_HDR_LEN 8
 
 typedef struct stats_t {
-    uint64_t pkts_sent;
-    uint64_t pkts_recv;
-    uint64_t pkts_sent_prev;
-    uint64_t pkts_recv_prev;
-    uint64_t bytes_sent;
-    uint64_t bytes_recv;
-    uint64_t bytes_sent_prev;
-    uint64_t bytes_recv_prev;
+    long long pkts_sent;
+    long long pkts_recv;
+    long long pkts_sent_prev;
+    long long pkts_recv_prev;
+    long long bytes_sent;
+    long long bytes_recv;
+    long long bytes_sent_prev;
+    long long bytes_recv_prev;
 } stats_t;
 
 const char mydata[2048] = {
@@ -191,10 +191,11 @@ static void recv_body(stats_t *stats)
     }
 
     printf(("Entering recv loop\n"));
+    struct rte_mbuf *rx_mbuf_table[128];
     while (app_alive) {
         // Bounce incoming packets
         int len = sizeof(cliaddr);
-        n = udpdk_recvfrom(sock, (void *)buf, 2048, 0, ( struct sockaddr *) &cliaddr, &len);
+        n = rte_eth_rx_burst(PORT_RX, QUEUE_RX, rx_mbuf_table, RX_MBUF_TABLE_SIZE);
         if (n > 0) {
             stats->pkts_recv++;
             stats->bytes_recv += n;
@@ -206,6 +207,10 @@ static void recv_body(stats_t *stats)
                 printf("Received payload of %d bytes from %s port %d:\n%s\n", n,
                     inet_ntop(AF_INET,&cliaddr.sin_addr, clientname, sizeof(clientname)),
                     ntohs(cliaddr.sin_port), buf);
+            }
+            for (int i=0; i<n;i++){
+//                rte_pktmbuf_free(*rx_mbuf_table);
+                rte_pktmbuf_free(rx_mbuf_table[i]);
             }
         }
     }
@@ -305,7 +310,7 @@ static void *stats_routine(void *arg)
                     stats->pkts_sent, tx_pps, stats->bytes_sent, tx_bps,
                     stats->pkts_recv, rx_pps, stats->bytes_recv, rx_bps);
         } else {
-            printf("Sent: %ld pkts  %ld pps  %ld bytes  %ld bps  |  Recv: %ld pkts  %ld pps  %ld bytes  %ld bps\n",
+            printf("Sent: %lld pkts  %ld pps  %lld bytes  %ld bps  |  Recv: %lld pkts  %ld pps  %lld bytes  %ld bps\n",
                     stats->pkts_sent, tx_pps, stats->bytes_sent, tx_bps,
                     stats->pkts_recv, rx_pps, stats->bytes_recv, rx_bps);
         }

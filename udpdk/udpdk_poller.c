@@ -361,7 +361,9 @@ static inline void reassemble(struct rte_mbuf *m, uint16_t portid, uint32_t queu
         }
     } else {
         RTE_LOG(WARNING, POLLBODY, "Received non-IPv4 packet, showing content below:\n");
-        udpdk_dump_mbuf(m);
+//        udpdk_dump_mbuf(m);
+// **********************************************
+        rte_pktmbuf_free(m);
         return;
     }
 
@@ -445,6 +447,7 @@ void poller_body(void)
     rx_mbuf_table = qconf->rx_queue.rx_mbuf_table;
     tx_mbuf_table = qconf->tx_queue.tx_mbuf_table;
 
+    unsigned long long packets_received = 0;
     while (poller_alive) {
         // Get current timestamp (needed for reassembly)
         cur_tsc = rte_rdtsc();
@@ -514,7 +517,11 @@ void poller_body(void)
         }
 
         // Receive packets from DPDK port 0 (queue 0)   TODO use more queues (RSS)
-        rx_count = rte_eth_rx_burst(PORT_RX, QUEUE_RX, rx_mbuf_table, RX_MBUF_TABLE_SIZE);
+//        rx_count = rte_eth_rx_burst(PORT_RX, QUEUE_RX, rx_mbuf_table, RX_MBUF_TABLE_SIZE);
+        rx_count = 0;
+        if (rx_count > 0){
+
+        }
 
         if (likely(rx_count > 0)) {
             // Prefetch some packets (to reduce cache misses later)
