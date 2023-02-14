@@ -23,8 +23,8 @@
 #define BUSYWAIT
 
 #define PORT_SEND   10000
-#define PORT_RECV   10001
-#define IP_RECV     "172.31.100.1"
+#define PORT_RECV   5001
+#define IP_RECV     "192.168.56.116"
 
 #define ETH_HDR_LEN 14
 #define IP_HDR_LEN  20
