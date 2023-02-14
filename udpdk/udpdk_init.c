@@ -54,8 +54,7 @@ static pid_t poller_pid;
 
 
 /* Get the name of the rings of exchange slots */
-static inline const char * get_exch_ring_name(unsigned id, enum exch_ring_func func)
-{
+static inline const char *get_exch_ring_name(unsigned id, enum exch_ring_func func) {
     static char buffer[sizeof(EXCH_RX_RING_NAME) + 8];
 
     if (func == EXCH_RING_RX) {
@@ -67,8 +66,7 @@ static inline const char * get_exch_ring_name(unsigned id, enum exch_ring_func f
 }
 
 /* Initialize a pool of mbuf for reception and transmission */
-static int init_mbuf_pools(void)
-{
+static int init_mbuf_pools(void) {
     const unsigned int num_mbufs_rx = NUM_RX_DESC_DEFAULT;
     const unsigned int num_mbufs_tx = NUM_TX_DESC_DEFAULT;  // TODO size properly
     const unsigned int num_mbufs_cache = 2 * MBUF_CACHE_SIZE;
@@ -76,28 +74,31 @@ static int init_mbuf_pools(void)
     const int socket = rte_socket_id();
 
     rx_pktmbuf_pool = rte_pktmbuf_pool_create(PKTMBUF_POOL_RX_NAME, num_mbufs, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, socket);
+                                              RTE_MBUF_DEFAULT_BUF_SIZE, socket);
     if (rx_pktmbuf_pool == NULL) {
         RTE_LOG(ERR, INIT, "Failed to allocate RX pool: %s\n", rte_strerror(rte_errno));
         return -1;
     }
 
     tx_pktmbuf_pool = rte_pktmbuf_pool_create(PKTMBUF_POOL_TX_NAME, num_mbufs, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, socket);  // used by the app (sendto) // TODO size properly
+                                              RTE_MBUF_DEFAULT_BUF_SIZE,
+                                              socket);  // used by the app (sendto) // TODO size properly
     if (tx_pktmbuf_pool == NULL) {
         RTE_LOG(ERR, INIT, "Failed to allocate TX pool: %s\n", rte_strerror(rte_errno));
         return -1;
     }
 
     tx_pktmbuf_direct_pool = rte_pktmbuf_pool_create(PKTMBUF_POOL_DIRECT_TX_NAME, num_mbufs, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, socket);  // used by the poller       // TODO size properly
+                                                     RTE_MBUF_DEFAULT_BUF_SIZE,
+                                                     socket);  // used by the poller       // TODO size properly
     if (tx_pktmbuf_direct_pool == NULL) {
         RTE_LOG(ERR, INIT, "Failed to allocate TX direct pool: %s\n", rte_strerror(rte_errno));
         return -1;
     }
 
     tx_pktmbuf_indirect_pool = rte_pktmbuf_pool_create(PKTMBUF_POOL_INDIRECT_TX_NAME, num_mbufs, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, socket);  // used by the poller      // TODO size properly
+                                                       RTE_MBUF_DEFAULT_BUF_SIZE,
+                                                       socket);  // used by the poller      // TODO size properly
     if (tx_pktmbuf_indirect_pool == NULL) {
         RTE_LOG(ERR, INIT, "Failed to allocate TX indirect pool: %s\n", rte_strerror(rte_errno));
         return -1;
@@ -107,8 +108,7 @@ static int init_mbuf_pools(void)
 }
 
 /* Initialize a DPDK port */
-static int init_port(uint16_t port_num)
-{
+static int init_port(uint16_t port_num) {
     struct rte_eth_dev_info dev_info;
     // TODO add RSS support
     const uint16_t rx_rings = 1;
@@ -133,17 +133,15 @@ static int init_port(uint16_t port_num)
     }
 
     const struct rte_eth_conf port_conf = {
-        .rxmode = {
-            .mq_mode = ETH_MQ_RX_RSS,
-            .max_rx_pkt_len = RTE_MIN(JUMBO_FRAME_MAX_SIZE, dev_info.max_rx_pktlen),
-            .split_hdr_size = 0,
-            .offloads = (DEV_RX_OFFLOAD_CHECKSUM |
-                         DEV_RX_OFFLOAD_SCATTER |
-                         DEV_RX_OFFLOAD_JUMBO_FRAME),
-        },
-        .txmode = {
-            .offloads = DEV_TX_OFFLOAD_MULTI_SEGS,
-        }
+            .rxmode = {
+                    .mq_mode = RTE_ETH_MQ_RX_RSS,
+                    .mtu = RTE_MIN(JUMBO_FRAME_MAX_SIZE, dev_info.max_rx_pktlen),
+                    .offloads = (RTE_ETH_RX_OFFLOAD_CHECKSUM |
+                                 RTE_ETH_RX_OFFLOAD_SCATTER),
+            },
+            .txmode = {
+                    .offloads = RTE_ETH_TX_OFFLOAD_MULTI_SEGS,
+            }
     };
 
     // Configure mode and number of rings
@@ -163,7 +161,7 @@ static int init_port(uint16_t port_num)
     // Setup the RX queues
     for (q = 0; q < rx_rings; q++) {
         retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
-                rte_eth_dev_socket_id(port_num), NULL, rx_pktmbuf_pool);
+                                        rte_eth_dev_socket_id(port_num), NULL, rx_pktmbuf_pool);
         if (retval < 0) {
             RTE_LOG(ERR, INIT, "Could not setup RX queue %d on port %d\n", q, port_num);
             return retval;
@@ -173,7 +171,7 @@ static int init_port(uint16_t port_num)
     // Setup the TX queues
     for (q = 0; q < tx_rings; q++) {
         retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
-                rte_eth_dev_socket_id(port_num), NULL); // no particular configuration needed
+                                        rte_eth_dev_socket_id(port_num), NULL); // no particular configuration needed
         if (retval < 0) {
             RTE_LOG(ERR, INIT, "Could not setup TX queue %d on port %d\n", q, port_num);
             return retval;
@@ -199,8 +197,7 @@ static int init_port(uint16_t port_num)
 }
 
 /* Initialize a shared memory region to contain descriptors for the exchange slots */
-static int init_exch_memzone(void)
-{
+static int init_exch_memzone(void) {
     const struct rte_memzone *mz;
 
     mz = rte_memzone_reserve(EXCH_MEMZONE_NAME, sizeof(*exch_zone_desc), rte_socket_id(), 0);
@@ -214,8 +211,7 @@ static int init_exch_memzone(void)
     return 0;
 }
 
-static int destroy_exch_memzone(void)
-{
+static int destroy_exch_memzone(void) {
     const struct rte_memzone *mz;
 
     mz = rte_memzone_lookup(EXCH_MEMZONE_NAME);
@@ -223,8 +219,7 @@ static int destroy_exch_memzone(void)
 }
 
 /* Initialize a shared memory region to store the L4 switching table */
-static int init_udp_bind_table(void)
-{
+static int init_udp_bind_table(void) {
     const struct rte_memzone *mz;
 
     mz = rte_memzone_reserve(UDP_BIND_TABLE_NAME, UDP_MAX_PORT * sizeof(struct udpdk_list_t *), rte_socket_id(), 0);
@@ -238,8 +233,7 @@ static int init_udp_bind_table(void)
 }
 
 /* Destroy table for UDP port switching */
-static int destroy_udp_bind_table(void)
-{
+static int destroy_udp_bind_table(void) {
     const struct rte_memzone *mz;
 
     btable_destroy();
@@ -249,8 +243,7 @@ static int destroy_udp_bind_table(void)
 }
 
 /* Initialize (statically) the slots to exchange packets between the application and the poller */
-static int init_exchange_slots(void)
-{
+static int init_exchange_slots(void) {
     unsigned i;
     unsigned socket_id;
     const char *q_name;
@@ -279,8 +272,7 @@ static int init_exchange_slots(void)
 }
 
 /* Initialize UDPDK */
-int udpdk_init(int argc, char *argv[])
-{
+int udpdk_init(int argc, char *argv[]) {
     int retval;
 
     // Parse and initialize the arguments
@@ -293,7 +285,7 @@ int udpdk_init(int argc, char *argv[])
     poller_pid = fork();
     if (poller_pid != 0) {  // parent -> application
         // Initialize EAL (returns how many arguments it consumed)
-        if (rte_eal_init(primary_argc, (char **)primary_argv) < 0) {
+        if (rte_eal_init(primary_argc, (char **) primary_argv) < 0) {
             RTE_LOG(ERR, INIT, "Cannot initialize EAL\n");
             return -1;
         }
@@ -355,12 +347,12 @@ int udpdk_init(int argc, char *argv[])
 
         // Let the poller process resume initialization
         ipc_notify_to_poller();
-        
+
         // Wait for the poller to be fully initialized
         RTE_LOG(INFO, INIT, "Waiting for the poller to complete its inialization...\n");
         ipc_wait_for_poller();
     } else {  // child -> packet poller
-        if (poller_init(secondary_argc, (char **)secondary_argv) < 0) {
+        if (poller_init(secondary_argc, (char **) secondary_argv) < 0) {
             RTE_LOG(INFO, INIT, "Poller initialization failed\n");
             return -1;
         }
@@ -371,15 +363,13 @@ int udpdk_init(int argc, char *argv[])
 }
 
 /* Signal UDPDK poller to stop */
-void udpdk_interrupt(int signum)
-{
+void udpdk_interrupt(int signum) {
     RTE_LOG(INFO, INTR, "Killing the poller process (%d)...\n", poller_pid);
     interrupted = 1;
 }
 
 /* Close all the open sockets */
-static void udpdk_close_all_sockets(void)
-{
+static void udpdk_close_all_sockets(void) {
     for (int s = 0; s < NUM_SOCKETS_MAX; s++) {
         if (exch_zone_desc->slots[s].bound) {
             RTE_LOG(INFO, CLOSE, "Closing socket %d that was left open\n", s);
@@ -389,8 +379,7 @@ static void udpdk_close_all_sockets(void)
 }
 
 /* Release all the memory and data structures used by UDPDK */
-void udpdk_cleanup(void)
-{
+void udpdk_cleanup(void) {
     uint16_t port_id;
     pid_t pid;
 
@@ -405,7 +394,8 @@ void udpdk_cleanup(void)
     }
 
     // Stop and close DPDK ports
-    RTE_ETH_FOREACH_DEV(port_id) {
+    RTE_ETH_FOREACH_DEV(port_id)
+    {
         rte_eth_dev_stop(port_id);
         rte_eth_dev_close(port_id);
     }
@@ -415,7 +405,7 @@ void udpdk_cleanup(void)
 
     // Free the memory of L4 switching table
     destroy_udp_bind_table();
- 
+
     // Free the memory for exch zone
     destroy_exch_memzone();
 

@@ -12,11 +12,11 @@ PREFIX_BIN=/usr/local/bin
 UDPDK_VERSION=1.0
 
 # root is only needed to perform install
-ifneq ($(shell id -u), 0)
-ifeq ($(RTE_TARGET),)
-$(error "Please define RTE_TARGET environment variable")
-endif
-endif
+#ifneq ($(shell id -u), 0)
+#ifeq ($(RTE_TARGET),)
+#$(error "Please define RTE_TARGET environment variable")
+#endif
+#endif
 
 UDPDK_DPDK=${DEPSDIR}/dpdk/${RTE_TARGET}
 

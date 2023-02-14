@@ -39,14 +39,14 @@ void check_port_link_status(uint16_t portid) {
         if (print_flag == 1) {
             if (link.link_status) {
                 RTE_LOG(INFO, MONITOR, "Port %d Link Up - speed %u Mbps - %s\n", portid, (unsigned) link.link_speed,
-                        (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? ("full-duplex") : ("half-duplex\n"));
+                        (link.link_duplex == RTE_ETH_LINK_FULL_DUPLEX) ? ("full-duplex") : ("half-duplex\n"));
                 break;
             } else {
                 RTE_LOG(INFO, MONITOR, "Port %d Link Down\n", (uint8_t) portid);
             }
             continue;
         }
-        if (link.link_status == ETH_LINK_DOWN) {
+        if (link.link_status == RTE_ETH_LINK_DOWN) {
             all_ports_up = 0;
             break;
         }
