@@ -37,6 +37,12 @@
 
 static volatile int poller_alive = 1;
 
+
+unsigned long long packets_received_total = 0;
+unsigned long long packets_received_now = 0;
+unsigned long long bytes_received_total = 0;
+unsigned long long bytes_received_now = 0;
+
 extern struct exch_zone_info *exch_zone_desc;
 extern struct exch_slot *exch_slots;
 extern udpdk_list_t **sock_bind_table;
@@ -362,6 +368,7 @@ static inline void reassemble(struct rte_mbuf *m, uint16_t portid, uint32_t queu
     } else {
 //        RTE_LOG(WARNING, POLLBODY, "Received non-IPv4 packet, showing content below:\n");
 //        udpdk_dump_mbuf(m);
+        rte_pktmbuf_free(m);
         return;
     }
 
@@ -424,6 +431,15 @@ static inline void flush_tx_table(struct rte_mbuf **tx_mbuf_table, uint16_t tx_c
     }
 }
 
+void * stats_routine(){
+    while (1){
+        sleep(1);
+        printf("Packets received: %llu Mbits/s: %llu \n",packets_received_now, bytes_received_now*8/1024/1024);
+        packets_received_now = 0;
+        bytes_received_now = 0;
+    }
+}
+
 /* Packet polling routine */
 void poller_body(void)
 {
@@ -445,8 +461,13 @@ void poller_body(void)
     rx_mbuf_table = qconf->rx_queue.rx_mbuf_table;
     tx_mbuf_table = qconf->tx_queue.tx_mbuf_table;
 
-    unsigned long long packets_received = 0;
-    unsigned long long bytes_received = 0;
+
+    pthread_t stats_thr;
+
+    if (pthread_create(&stats_thr, NULL, stats_routine, NULL)) {
+        fprintf(stderr, "Error creating thread\n");
+//        return -1;
+    }
 
     while (poller_alive) {
         // Get current timestamp (needed for reassembly)
@@ -519,15 +540,10 @@ void poller_body(void)
         // Receive packets from DPDK port 0 (queue 0)   TODO use more queues (RSS)
         // ********************************88
         rx_count = rte_eth_rx_burst(PORT_RX, QUEUE_RX, rx_mbuf_table, RX_MBUF_TABLE_SIZE);
-        if (rx_count > 0){
-            printf("something\n");
-            packets_received += rx_count;
-            printf("rx_count: %d\n", rx_count);
-            printf("%llu\n", packets_received);
+        for (int i=0; i<rx_count; i++){
+            bytes_received_now += rx_mbuf_table[i]->pkt_len;
+            packets_received_now++;
         }
-//        if (rx_count > 0)
-//            printf("%llu\n", packets_received);
-//
 
         if (likely(rx_count > 0)) {
             // Prefetch some packets (to reduce cache misses later)

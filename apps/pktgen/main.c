@@ -359,11 +359,11 @@ int main(int argc, char *argv[])
     }
 
     // Start the thread to visualize statistics in real time
-    reset_stats(&stats);
-    if (pthread_create(&stats_thr, NULL, stats_routine, &stats)) {
-        fprintf(stderr, "Error creating thread\n");
-        return -1;
-    }
+//    reset_stats(&stats);
+//    if (pthread_create(&stats_thr, NULL, stats_routine, &stats)) {
+//        fprintf(stderr, "Error creating thread\n");
+//        return -1;
+//    }
 
     if (mode == SEND) {
         send_body(&stats);
